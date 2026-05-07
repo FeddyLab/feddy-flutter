@@ -1,0 +1,30 @@
+name: feddy_flutter
+description: Feedback infrastructure SDK for Flutter mobile apps. Smart review prompts, paid-user signals, and a feedback loop that doesn't get in the way.
+version: 0.1.0
+homepage: https://feddy.app
+repository: https://github.com/FeddyLab/feddy-flutter
+issue_tracker: https://github.com/FeddyLab/feddy-flutter/issues
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+  flutter: ">=3.10.0"
+
+dependencies:
+  device_info_plus: ^12.4.0
+  flutter:
+    sdk: flutter
+  http: ^1.6.0
+  image: ^4.8.0
+  image_picker: ^1.2.1
+  in_app_purchase: ^3.2.3
+  in_app_review: ^2.0.11
+  package_info_plus: ^9.0.1
+  shared_preferences: ^2.5.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  assets: []
