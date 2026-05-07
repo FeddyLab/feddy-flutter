@@ -1,3 +1,4 @@
+import 'api/boards.dart' as boards_api;
 import 'client.dart';
 import 'feddy_error.dart';
 import 'identity.dart';
@@ -206,6 +207,27 @@ abstract final class Feddy {
   /// continues to compile when v0.2 lights up auto-detection.
   static void refreshSubscription() {
     // Intentionally empty in v0.1 — see docstring.
+  }
+
+  /// Fetch the workspace's public, non-archived boards from the
+  /// server (`GET /v1/boards`) with a 1 h cache. Stale-while-revalidate:
+  /// returns cached value immediately on hit, kicks a background
+  /// refresh.
+  ///
+  /// Falls back to the SDK-bundled system defaults (`Feature` /
+  /// `Bug`, localized) on first-launch network failure or when the
+  /// SDK has not been configured yet.
+  ///
+  /// The bundled views (`RequestListView` / `RoadmapView` /
+  /// `FeedbackComposeView`) call this automatically — only invoke
+  /// directly when rendering a custom board picker outside the
+  /// SDK's modals.
+  static Future<List<FeedbackBoard>> fetchBoards() async {
+    final client = getCurrentClient();
+    if (client == null) {
+      return systemDefaultBoards();
+    }
+    return boards_api.fetchBoards(client);
   }
 
   /// Present the built-in feedback compose modal. Requires
