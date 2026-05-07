@@ -12,6 +12,4 @@ linter:
     - prefer_const_declarations
     - prefer_final_locals
     - require_trailing_commas
-    - sort_constructors_first
-    - sort_unnamed_constructors_first
     - unawaited_futures
