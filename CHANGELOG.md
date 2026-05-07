@@ -3,6 +3,16 @@
 All notable changes to this package will be documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.2.0] - 2026-05-07
+
+### Added
+- Automatic subscription detection on iOS via `SK2Transaction.transactions()` (StoreKit 2)
+- Automatic subscription detection on Android via Play Billing `purchaseStream` + `restorePurchases()`
+- `Feddy.refreshSubscription()` re-runs detection after a purchase or restore
+
+### Changed
+- `Feddy.configure(autoDetectSubscription:)` defaults to `true` and now actively detects entitlements; pass `false` to disable
+
 ## [0.1.0] - 2026-05-07
 
 Initial public release. Day-one parity with the iOS / React Native

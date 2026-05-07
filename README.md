@@ -1,6 +1,6 @@
 # Feddy SDK for Flutter
 
-> **Beta Notice**: This SDK is currently in beta (v0.1.0). The API may change before the 1.0 release.
+> **Beta Notice**: This SDK is currently in beta (v0.2.0). The API may change before the 1.0 release.
 
 Feddy gives Flutter apps a feedback loop that doesn't get in the way: a smart-review prompt that captures low ratings privately while routing 4-5 star moments to the App Store / Play Store, paid-user signals you push from your subscription source-of-truth, and drop-in Material widgets for the public roadmap.
 
@@ -137,9 +137,19 @@ Clears the last identified user, manual subscription override, and cached server
 
 ### Subscription State
 
-By default the SDK reads the host app's currently-active subscription from the next `identify(...)` call. **In v0.1 the SDK does not auto-detect StoreKit / Play Billing entitlements** — the iOS / RN siblings have native APIs that surface active entitlements without product IDs; Flutter's `in_app_purchase` requires a known product list, so v0.1 relies on the host app calling `setSubscription` explicitly. Auto-detection is reserved for v0.2 once the SDK accepts an `iapProductIds` configuration parameter.
+`Feddy.configure(...)` enables automatic subscription detection by default — no product IDs required:
 
-If your source-of-truth for paid state is RevenueCat, Adapty, or your own server, push the snapshot:
+- **iOS**: reads `SK2Transaction.transactions()` (StoreKit 2)
+- **Android**: subscribes to Play Billing's `purchaseStream` and triggers `restorePurchases()`
+
+The detected snapshot is attached to the next `Feddy.identify(...)` call. Call `Feddy.refreshSubscription()` after a purchase / restore to re-read state. Pass `autoDetectSubscription: false` to disable.
+
+Limitations:
+
+- **Android** subscriptions surface no expiration timestamp (`expiresAt` is always `null`); Play Billing's client-side API does not expose it
+- Trial / introductory offer detection is not performed; not-yet-expired entitlements are reported as `active`
+
+If your source-of-truth for paid state is RevenueCat, Adapty, or your own server, push the snapshot manually — manual overrides always win:
 
 ```dart
 Feddy.setSubscription(const Subscription(
@@ -153,7 +163,7 @@ Feddy.setSubscription(const Subscription(
 Feddy.setSubscription(null);
 ```
 
-Manual overrides win over the auto-detected snapshot (when v0.2 lights it up). Both persist across launches via `shared_preferences`; the next `Feddy.identify(...)` call attaches whichever takes precedence automatically.
+Both manual and auto values persist across launches via `shared_preferences`; the next `Feddy.identify(...)` call attaches whichever takes precedence automatically.
 
 ### Custom Boards & i18n
 

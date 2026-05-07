@@ -1,6 +1,10 @@
+import 'dart:io' show Platform;
+
 import 'api/boards.dart' as boards_api;
 import 'client.dart';
 import 'feddy_error.dart';
+import 'iap_detector.dart' as iap_detector;
+import 'iap_stream_listener.dart';
 import 'identity.dart';
 import 'runtime.dart';
 import 'smart_review/smart_review.dart' as smart_review;
@@ -39,10 +43,13 @@ abstract final class Feddy {
   /// are rejected with a console log; subsequent calls to
   /// `identify` / `submitRequest` will silently no-op.
   ///
-  /// - [autoDetectSubscription] is reserved for a future v0.2 release
-  ///   where host apps can pass `iapProductIds` to opt into automatic
-  ///   StoreKit / Play Billing detection. In v0.1 the SDK does **not**
-  ///   auto-detect — host apps push state via [setSubscription].
+  /// - [autoDetectSubscription] (default `true`) opts into automatic
+  ///   subscription detection: iOS reads `SK2Transaction.transactions()`
+  ///   (StoreKit 2); Android subscribes to Play Billing's
+  ///   `purchaseStream` and triggers `restorePurchases()`. Manual
+  ///   overrides via [setSubscription] always win. Hosts whose source
+  ///   of truth is RevenueCat / Adapty / their own server should pass
+  ///   `false` and push via [setSubscription].
   /// - [boardTranslations] supplies per-locale display names for
   ///   custom (non `features` / `bugs`) board keys. System keys are
   ///   always pulled from the SDK's bundled catalog.
@@ -78,8 +85,36 @@ abstract final class Feddy {
           _logError('configure.replayQueue', err);
         }
       });
+      if (autoDetectSubscription) {
+        Future<void>(() async {
+          try {
+            await _startSubscriptionDetection();
+          } catch (err) {
+            _logError('configure.detectSubscription', err);
+          }
+        });
+      }
     } catch (err) {
       _logError('configure', err);
+    }
+  }
+
+  /// Platform-dispatched subscription detection. iOS queries
+  /// SK2Transaction once; Android starts a long-lived stream listener
+  /// stashed in `runtime.dart` for later refresh / reset.
+  static Future<void> _startSubscriptionDetection() async {
+    if (Platform.isIOS) {
+      final detected = await iap_detector.detectActiveSubscription();
+      await setAutoDetectedSubscription(detected);
+      return;
+    }
+    if (Platform.isAndroid) {
+      await getCurrentIapListener()?.stop();
+      final listener = IapStreamListener(
+        onResolved: setAutoDetectedSubscription,
+      );
+      setCurrentIapListener(listener);
+      await listener.start();
     }
   }
 
@@ -198,15 +233,36 @@ abstract final class Feddy {
     });
   }
 
-  /// Re-read the host app's currently-active subscription. Reserved
-  /// for v0.2 — in v0.1 this is a no-op since the SDK does not
-  /// auto-detect IAP entitlements. The manual override set via
-  /// [setSubscription] is unaffected.
+  /// Re-read the host app's currently-active subscription via the
+  /// platform's official read-only API (StoreKit 2 on iOS, Play
+  /// Billing on Android). Call after a purchase, restore, or
+  /// subscription state change so the SDK's snapshot stays fresh.
   ///
-  /// Provided as a stable surface so host code written today
-  /// continues to compile when v0.2 lights up auto-detection.
+  /// Fire-and-forget. No-op when the host disabled
+  /// `autoDetectSubscription`. The manual override set via
+  /// [setSubscription] is unaffected.
   static void refreshSubscription() {
-    // Intentionally empty in v0.1 — see docstring.
+    final client = getCurrentClient();
+    if (client == null) {
+      // ignore: avoid_print
+      print('[Feddy] refreshSubscription called before configure — ignoring');
+      return;
+    }
+    if (!client.autoDetectSubscription) return;
+    Future<void>(() async {
+      try {
+        if (Platform.isIOS) {
+          final detected = await iap_detector.detectActiveSubscription();
+          await setAutoDetectedSubscription(detected);
+          return;
+        }
+        if (Platform.isAndroid) {
+          await getCurrentIapListener()?.refresh();
+        }
+      } catch (err) {
+        _logError('refreshSubscription', err);
+      }
+    });
   }
 
   /// Fetch the workspace's public, non-archived boards from the
@@ -297,6 +353,12 @@ abstract final class Feddy {
         await setLastExternalUserId(null);
       } catch (err) {
         _logError('reset.identity', err);
+      }
+      try {
+        await getCurrentIapListener()?.stop();
+        setCurrentIapListener(null);
+      } catch (err) {
+        _logError('reset.iapListener', err);
       }
       try {
         await clearStoredSubscription();
