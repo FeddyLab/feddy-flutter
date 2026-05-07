@@ -14,21 +14,21 @@ void main() {
 
   group('localizedBoardName', () {
     test('returns SDK i18n for system keys (en)', () {
-      expect(localizedBoardName('features'), 'Feature Requests');
-      expect(localizedBoardName('bugs'), 'Bug Reports');
+      expect(localizedBoardName('features'), 'Feature');
+      expect(localizedBoardName('bugs'), 'Bug');
     });
 
     test('returns SDK i18n for system keys (ja)', () {
       setLocale(FeddyLocale.ja);
-      expect(localizedBoardName('features'), '機能リクエスト');
-      expect(localizedBoardName('bugs'), 'バグ報告');
+      expect(localizedBoardName('features'), '機能');
+      expect(localizedBoardName('bugs'), 'バグ');
     });
 
     test('ignores fallbackName on system keys', () {
       setLocale(FeddyLocale.de);
       expect(
         localizedBoardName('features', 'Server English Override'),
-        'Funktionswünsche',
+        'Funktion',
       );
     });
 
@@ -76,9 +76,9 @@ void main() {
         'features': {'ja': 'カスタム機能', 'en': 'My Custom'},
       });
       setLocale(FeddyLocale.ja);
-      expect(localizedBoardName('features', 'Features'), '機能リクエスト');
+      expect(localizedBoardName('features', 'Features'), '機能');
       setLocale(FeddyLocale.en);
-      expect(localizedBoardName('features', 'Features'), 'Feature Requests');
+      expect(localizedBoardName('features', 'Features'), 'Feature');
     });
 
     test('clearBoardTranslations wipes the table', () {
@@ -97,7 +97,7 @@ void main() {
       final localized = localizeBoard(
         const FeedbackBoard(key: 'features', name: 'Features'),
       );
-      expect(localized.name, 'Solicitudes de funciones');
+      expect(localized.name, 'Función');
     });
 
     test('passes custom boards through untouched', () {
@@ -123,9 +123,9 @@ void main() {
       final boards = systemDefaultBoards();
       expect(boards.length, 2);
       expect(boards[0].key, 'features');
-      expect(boards[0].name, 'Demandes de fonctionnalités');
+      expect(boards[0].name, 'Fonction');
       expect(boards[1].key, 'bugs');
-      expect(boards[1].name, 'Rapports de bugs');
+      expect(boards[1].name, 'Bug');
     });
   });
 }

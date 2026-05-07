@@ -78,12 +78,17 @@ class _FeddyProviderState extends State<FeddyProvider> {
     await showModalBottomSheet<void>(
       context: navigator.context,
       isScrollControlled: true,
-      builder: (_) => SmartReviewSheet(
+      builder: (sheetContext) => SmartReviewSheet(
         onRated: (stars) {
+          // Pop the sheet first so it's already gone by the time the
+          // system review prompt animates in (otherwise the bottom
+          // sheet sits behind the system overlay until this frame
+          // settles).
+          Navigator.of(sheetContext).pop();
           smartReviewUiState.emitRated(stars);
         },
         onCancel: () {
-          Navigator.of(navigator.context).pop();
+          Navigator.of(sheetContext).pop();
           smartReviewUiState.emitCancelled();
         },
       ),
