@@ -36,9 +36,8 @@ class FeddyRequestRow extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200, width: 1),
+          border: Border.all(color: Colors.grey.shade300, width: 1),
         ),
         child: Material(
           color: Colors.transparent,
@@ -47,7 +46,7 @@ class FeddyRequestRow extends StatelessWidget {
           child: InkWell(
             onTap: onTap,
             child: Padding(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
