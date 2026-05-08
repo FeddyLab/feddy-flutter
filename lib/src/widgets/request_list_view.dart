@@ -310,6 +310,7 @@ class _RequestListViewState extends State<RequestListView> {
       onRefresh: _loadInitial,
       child: ListView.builder(
         controller: _scrollController,
+        padding: const EdgeInsets.only(top: 12, bottom: 16),
         itemCount: _items.length + (_loadingMore ? 1 : 0),
         itemBuilder: (_, index) {
           if (index == _items.length) {

@@ -32,83 +32,100 @@ class FeddyRequestRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final count = voteOverlay ?? request.voteCount;
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            FeddyUpvotePill(
-              count: count,
-              voted: voted,
-              pending: votePending,
-              onTap: onVoteTap,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200, width: 1),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Text(
-                    request.title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                  FeddyUpvotePill(
+                    count: count,
+                    voted: voted,
+                    pending: votePending,
+                    onTap: onVoteTap,
                   ),
-                  if (request.description.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      request.description,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey.shade700,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                  const SizedBox(height: 6),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 4,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      FeddyMiniChip(
-                        label: boardName,
-                        color: Colors.grey.shade600,
-                        fillAlpha: 0.12,
-                      ),
-                      if (showStatusChip)
-                        FeddyStatusChip(status: request.status),
-                      if (request.attachments.isNotEmpty)
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          request.title,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                            height: 1.3,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (request.description.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            request.description,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey.shade700,
+                              height: 1.35,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
+                          crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
-                            Icon(
-                              Icons.attach_file,
-                              size: 11,
-                              color: Colors.grey.shade600,
+                            FeddyMiniChip(
+                              label: boardName,
+                              color: Colors.grey.shade700,
+                              fillAlpha: 0.10,
                             ),
-                            const SizedBox(width: 2),
-                            Text(
-                              '${request.attachments.length}',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.grey.shade600,
+                            if (showStatusChip)
+                              FeddyStatusChip(status: request.status),
+                            if (request.attachments.isNotEmpty)
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.attach_file,
+                                    size: 11,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                  const SizedBox(width: 2),
+                                  Text(
+                                    '${request.attachments.length}',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
                           ],
                         ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
-          ],
+          ),
         ),
       ),
     );
