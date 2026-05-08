@@ -7,6 +7,7 @@ import '../i18n/i18n.dart';
 import '../runtime.dart';
 import '../system_boards.dart';
 import '../types.dart';
+import '_request_row.dart';
 import 'feedback_compose_view.dart';
 import 'powered_by_badge.dart';
 import 'request_detail_view.dart';
@@ -318,225 +319,18 @@ class _RequestListViewState extends State<RequestListView> {
             );
           }
           final item = _items[index];
-          final overlay = _voteOverlays[item.id];
-          final voted = _votedIds.contains(item.id);
-          final pending = _pendingVoteIds.contains(item.id);
-          return InkWell(
+          return FeddyRequestRow(
+            request: item,
+            boardName: _boardLabel(item.boardKey),
+            voteOverlay: _voteOverlays[item.id],
+            voted: _votedIds.contains(item.id),
+            votePending: _pendingVoteIds.contains(item.id),
+            showStatusChip: true,
+            onVoteTap: () => _handleVote(item),
             onTap: () => _openDetail(item.id),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 10,
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  _UpvotePill(
-                    count: overlay ?? item.voteCount,
-                    voted: voted,
-                    pending: pending,
-                    onTap: () => _handleVote(item),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item.title,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 15,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        if (item.description.isNotEmpty) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            item.description,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey.shade700,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                        const SizedBox(height: 6),
-                        Wrap(
-                          spacing: 6,
-                          runSpacing: 4,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [
-                            _MiniChip(
-                              label: _boardLabel(item.boardKey),
-                              color: Colors.grey.shade600,
-                              fillAlpha: 0.12,
-                            ),
-                            _StatusChip(status: item.status),
-                            if (item.attachments.isNotEmpty)
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.attach_file,
-                                    size: 11,
-                                    color: Colors.grey.shade600,
-                                  ),
-                                  const SizedBox(width: 2),
-                                  Text(
-                                    '${item.attachments.length}',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: Colors.grey.shade600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
           );
         },
       ),
     );
-  }
-}
-
-class _UpvotePill extends StatelessWidget {
-  final int count;
-  final bool voted;
-  final bool pending;
-  final VoidCallback onTap;
-
-  const _UpvotePill({
-    required this.count,
-    required this.voted,
-    required this.pending,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final fill = voted ? Colors.orange : Colors.grey.shade100;
-    final fg = voted ? Colors.white : Colors.grey.shade800;
-    return Semantics(
-      button: true,
-      label: voted ? t('action.upvoted') : t('action.upvote'),
-      child: InkWell(
-        onTap: pending ? null : onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          width: 46,
-          height: 50,
-          decoration: BoxDecoration(
-            color: fill,
-            borderRadius: BorderRadius.circular(10),
-            border: voted
-                ? null
-                : Border.all(color: Colors.grey.shade300, width: 1),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.keyboard_arrow_up, size: 16, color: fg),
-              Text(
-                '$count',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: fg,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _MiniChip extends StatelessWidget {
-  final String label;
-  final Color color;
-  final double fillAlpha;
-
-  const _MiniChip({
-    required this.label,
-    required this.color,
-    required this.fillAlpha,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: fillAlpha),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w500,
-          color: color,
-        ),
-      ),
-    );
-  }
-}
-
-class _StatusChip extends StatelessWidget {
-  final String status;
-
-  const _StatusChip({required this.status});
-
-  @override
-  Widget build(BuildContext context) {
-    final color = _statusColor(status);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        _statusLabel(status),
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w500,
-          color: color,
-        ),
-      ),
-    );
-  }
-
-  static Color _statusColor(String status) {
-    switch (status) {
-      case 'completed':
-        return Colors.green;
-      case 'in_progress':
-        return Colors.blue;
-      case 'planned':
-        return Colors.orange;
-      case 'rejected':
-      case 'duplicate':
-        return Colors.grey;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  static String _statusLabel(String status) {
-    final key = 'status.$status';
-    final value = t(key);
-    return value == key ? status : value;
   }
 }

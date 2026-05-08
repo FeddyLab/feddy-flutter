@@ -7,6 +7,7 @@ import '../i18n/i18n.dart';
 import '../runtime.dart';
 import '../system_boards.dart';
 import '../types.dart';
+import '_request_row.dart';
 import 'feedback_compose_view.dart';
 import 'powered_by_badge.dart';
 import 'request_detail_view.dart';
@@ -122,6 +123,9 @@ class _RoadmapTabState extends State<_RoadmapTab>
   bool _loading = true;
   bool _loadingMore = false;
   String? _error;
+  Set<String> _votedIds = <String>{};
+  final Map<String, int> _voteOverlays = <String, int>{};
+  final Set<String> _pendingVoteIds = <String>{};
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -170,6 +174,8 @@ class _RoadmapTabState extends State<_RoadmapTab>
       setState(() {
         _items = page.items;
         _nextCursor = page.nextCursor;
+        _votedIds = {for (final r in page.items) if (r.voted) r.id};
+        _voteOverlays.clear();
         _loading = false;
       });
     } on FeddyError catch (e) {
@@ -203,12 +209,70 @@ class _RoadmapTabState extends State<_RoadmapTab>
       setState(() {
         _items = [..._items, ...page.items];
         _nextCursor = page.nextCursor;
+        for (final r in page.items) {
+          if (r.voted) _votedIds.add(r.id);
+        }
         _loadingMore = false;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() => _loadingMore = false);
     }
+  }
+
+  Future<void> _handleVote(FeedbackRequest item) async {
+    if (_pendingVoteIds.contains(item.id)) return;
+    final client = getCurrentClient();
+    if (client == null) return;
+    final wasVoted = _votedIds.contains(item.id);
+    final baseline = _voteOverlays[item.id] ?? item.voteCount;
+    setState(() {
+      if (wasVoted) {
+        _votedIds.remove(item.id);
+        _voteOverlays[item.id] = (baseline - 1).clamp(0, 1 << 30);
+      } else {
+        _votedIds.add(item.id);
+        _voteOverlays[item.id] = baseline + 1;
+      }
+      _pendingVoteIds.add(item.id);
+    });
+    try {
+      final state = await read_api.upvote(client, requestId: item.id);
+      if (!mounted) return;
+      setState(() {
+        _voteOverlays[item.id] = state.voteCount;
+        if (state.voted) {
+          _votedIds.add(item.id);
+        } else {
+          _votedIds.remove(item.id);
+        }
+        _pendingVoteIds.remove(item.id);
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        if (wasVoted) {
+          _votedIds.add(item.id);
+        } else {
+          _votedIds.remove(item.id);
+        }
+        _voteOverlays[item.id] = baseline;
+        _pendingVoteIds.remove(item.id);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(t('detail.vote.failed'))),
+      );
+    }
+  }
+
+  Future<void> _openDetail(String id) async {
+    final ctx = context;
+    await Navigator.of(ctx).push(
+      MaterialPageRoute<void>(
+        builder: (_) => RequestDetailView(requestId: id),
+      ),
+    );
+    if (mounted) await _loadInitial();
   }
 
   String _boardLabel(String key) => localizedBoardName(
@@ -273,15 +337,18 @@ class _RoadmapTabState extends State<_RoadmapTab>
             );
           }
           final item = _items[index];
-          return ListTile(
-            title: Text(item.title),
-            subtitle: Text(_boardLabel(item.boardKey)),
-            trailing: Text('${item.voteCount}'),
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => RequestDetailView(requestId: item.id),
-              ),
-            ),
+          return FeddyRequestRow(
+            request: item,
+            boardName: _boardLabel(item.boardKey),
+            voteOverlay: _voteOverlays[item.id],
+            voted: _votedIds.contains(item.id),
+            votePending: _pendingVoteIds.contains(item.id),
+            // Roadmap groups by status via tabs already, so the per-row
+            // status chip would be redundant. iOS suppresses it the
+            // same way via `showStatusChip: false`.
+            showStatusChip: false,
+            onVoteTap: () => _handleVote(item),
+            onTap: () => _openDetail(item.id),
           );
         },
       ),

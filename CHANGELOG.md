@@ -8,7 +8,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 - `Feddy.fetchRequests` / `Feddy.fetchRequest` / `Feddy.upvote` / `Feddy.fetchComments` / `Feddy.addComment` — public read-side methods for building custom roadmap UIs
 - `RequestDetailView` now renders attached images in a tap-to-zoom grid
-- Optimistic upvote with automatic rollback on failure across `RequestListView` and `RequestDetailView`
+- Optimistic upvote with automatic rollback on failure across `RequestListView`, `RoadmapView`, and `RequestDetailView`
+- `RoadmapView` rows now match `RequestListView` layout (board chip, attachment count, upvote pill) and accept votes inline
 
 ### Fixed
 - Upvote endpoint corrected from `/votes` to `/vote`; previously every upvote attempt 404'd silently
