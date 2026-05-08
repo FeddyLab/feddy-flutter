@@ -245,10 +245,44 @@ class RequestList {
       );
 }
 
+/// Who posted a comment. `endUser` is an SDK end user (a current or
+/// past app installer); `admin` is a workspace operator commenting via
+/// the dashboard. `unknown` is a forward-compat fallback when an older
+/// server returns no `author_kind` field — older comments still
+/// display, just without the kind-specific styling.
+enum CommentAuthorKind { endUser, admin, unknown }
+
+extension CommentAuthorKindWire on CommentAuthorKind {
+  static CommentAuthorKind fromWire(String? value) {
+    switch (value) {
+      case 'end_user':
+        return CommentAuthorKind.endUser;
+      case 'admin':
+        return CommentAuthorKind.admin;
+      default:
+        return CommentAuthorKind.unknown;
+    }
+  }
+}
+
 class FeedbackComment {
   final String id;
   final String content;
   final String? authorEndUserId;
+
+  /// Who posted this comment — used by the bundled `RequestDetailView`
+  /// to color the row (own / other end user / team reply).
+  final CommentAuthorKind authorKind;
+
+  /// Display name resolved server-side. `null` for anonymous end users
+  /// or older server versions that don't return the field.
+  final String? authorDisplayName;
+
+  /// Whether the comment was posted by the calling end user. Server
+  /// computes this against the SDK's `as_external_user_id` /
+  /// `as_anonymous_token` query so it's stable across SDK reinstalls
+  /// where the host calls `Feddy.identify` with the same `userId`.
+  final bool isSelf;
 
   /// ISO 8601 timestamp.
   final String createdAt;
@@ -262,6 +296,9 @@ class FeedbackComment {
     required this.authorEndUserId,
     required this.createdAt,
     required this.updatedAt,
+    this.authorKind = CommentAuthorKind.unknown,
+    this.authorDisplayName,
+    this.isSelf = false,
   });
 
   factory FeedbackComment.fromJson(Map<String, dynamic> json) =>
@@ -269,6 +306,11 @@ class FeedbackComment {
         id: json['id'] as String,
         content: json['content'] as String? ?? '',
         authorEndUserId: json['author_end_user_id'] as String?,
+        authorKind: CommentAuthorKindWire.fromWire(
+          json['author_kind'] as String?,
+        ),
+        authorDisplayName: json['author_display_name'] as String?,
+        isSelf: json['is_self'] as bool? ?? false,
         createdAt: json['created_at'] as String? ?? '',
         updatedAt: json['updated_at'] as String? ?? '',
       );

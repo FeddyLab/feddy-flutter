@@ -22,6 +22,7 @@ export 'src/types.dart'
     show
         Attachment,
         Branding,
+        CommentAuthorKind,
         CommentList,
         FeedbackBoard,
         FeedbackComment,

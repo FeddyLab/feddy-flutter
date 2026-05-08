@@ -381,31 +381,9 @@ class _RequestDetailViewState extends State<RequestDetailView> {
                   )
                 else
                   ..._comments.map(
-                    (c) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(c.content),
-                            if (c.createdAt.isNotEmpty) ...[
-                              const SizedBox(height: 4),
-                              Text(
-                                _formatDate(c.createdAt),
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.grey.shade600,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
+                    (c) => _CommentBubble(
+                      comment: c,
+                      formattedDate: _formatDate(c.createdAt),
                     ),
                   ),
                 if (_commentsCursor != null)
@@ -637,3 +615,116 @@ class _AttachmentLightbox extends StatelessWidget {
   }
 }
 
+/// Renders a single comment with kind-specific accents:
+/// - `isSelf` → orange-tinted bubble, right-aligned, "You" label
+/// - `admin` → blue-tinted bubble, left-aligned, shield icon + team name
+/// - everyone else → neutral outlined bubble, left-aligned, end-user
+///   display name (or localized "Anonymous" fallback)
+class _CommentBubble extends StatelessWidget {
+  final FeedbackComment comment;
+  final String formattedDate;
+
+  const _CommentBubble({
+    required this.comment,
+    required this.formattedDate,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isSelf = comment.isSelf;
+    final isAdmin = comment.authorKind == CommentAuthorKind.admin;
+
+    final Color accent;
+    final Color borderColor;
+    final Color bgColor;
+    if (isAdmin) {
+      accent = Colors.blue.shade700;
+      borderColor = Colors.blue.shade200;
+      bgColor = Colors.blue.shade50;
+    } else if (isSelf) {
+      accent = Colors.orange.shade800;
+      borderColor = Colors.orange.shade300;
+      bgColor = Colors.orange.shade50;
+    } else {
+      accent = Colors.grey.shade700;
+      borderColor = Colors.grey.shade300;
+      bgColor = Colors.transparent;
+    }
+
+    final String label;
+    if (isSelf) {
+      label = t('detail.comment.you');
+    } else if (isAdmin) {
+      label = comment.authorDisplayName?.trim().isNotEmpty == true
+          ? comment.authorDisplayName!
+          : t('detail.comment.team');
+    } else {
+      label = comment.authorDisplayName?.trim().isNotEmpty == true
+          ? comment.authorDisplayName!
+          : t('detail.comment.anonymous');
+    }
+
+    final bubble = Container(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+      decoration: BoxDecoration(
+        color: bgColor,
+        border: Border.all(color: borderColor, width: 1),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (isAdmin) ...[
+                Icon(Icons.shield, size: 12, color: accent),
+                const SizedBox(width: 4),
+              ],
+              Flexible(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: accent,
+                    letterSpacing: 0.2,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(comment.content, style: const TextStyle(height: 1.35)),
+          if (formattedDate.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              formattedDate,
+              style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+            ),
+          ],
+        ],
+      ),
+    );
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        mainAxisAlignment:
+            isSelf ? MainAxisAlignment.end : MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Flexible(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width * 0.82,
+              ),
+              child: bubble,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

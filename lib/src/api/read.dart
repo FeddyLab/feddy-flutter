@@ -66,6 +66,9 @@ Future<CommentList> fetchComments(
   final response = await client.get(
     '/v1/requests/$escaped/comments',
     query: {
+      // Same as_user pair carried by /v1/requests so the server can
+      // tag each comment with `is_self` for the calling end user.
+      ...(await _asUserQuery()),
       'limit': '$clamped',
       if (cursor != null) 'cursor': cursor,
     },
