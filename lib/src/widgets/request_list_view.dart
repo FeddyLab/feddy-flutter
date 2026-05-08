@@ -30,6 +30,12 @@ class _RequestListViewState extends State<RequestListView> {
   bool _loading = true;
   bool _loadingMore = false;
   String? _error;
+  // Per-row optimistic state. votedIds + voteOverlays mirror iOS's
+  // pendingVoteIds / voteOverlays so a tap shows immediately and any
+  // network failure rolls back to the baseline.
+  Set<String> _votedIds = <String>{};
+  final Map<String, int> _voteOverlays = <String, int>{};
+  final Set<String> _pendingVoteIds = <String>{};
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -88,6 +94,8 @@ class _RequestListViewState extends State<RequestListView> {
       setState(() {
         _items = page.items;
         _nextCursor = page.nextCursor;
+        _votedIds = {for (final r in page.items) if (r.voted) r.id};
+        _voteOverlays.clear();
         _loading = false;
       });
     } on FeddyError catch (e) {
@@ -121,6 +129,9 @@ class _RequestListViewState extends State<RequestListView> {
       setState(() {
         _items = [..._items, ...page.items];
         _nextCursor = page.nextCursor;
+        for (final r in page.items) {
+          if (r.voted) _votedIds.add(r.id);
+        }
         _loadingMore = false;
       });
     } catch (_) {
@@ -130,36 +141,44 @@ class _RequestListViewState extends State<RequestListView> {
   }
 
   Future<void> _handleVote(FeedbackRequest item) async {
+    if (_pendingVoteIds.contains(item.id)) return;
     final client = getCurrentClient();
     if (client == null) return;
+    final wasVoted = _votedIds.contains(item.id);
+    final baseline = _voteOverlays[item.id] ?? item.voteCount;
+    setState(() {
+      if (wasVoted) {
+        _votedIds.remove(item.id);
+        _voteOverlays[item.id] = (baseline - 1).clamp(0, 1 << 30);
+      } else {
+        _votedIds.add(item.id);
+        _voteOverlays[item.id] = baseline + 1;
+      }
+      _pendingVoteIds.add(item.id);
+    });
     try {
       final state = await read_api.upvote(client, requestId: item.id);
       if (!mounted) return;
       setState(() {
-        _items = _items
-            .map(
-              (r) => r.id == item.id
-                  ? FeedbackRequest(
-                      id: r.id,
-                      title: r.title,
-                      description: r.description,
-                      requestType: r.requestType,
-                      status: r.status,
-                      priority: r.priority,
-                      boardId: r.boardId,
-                      boardKey: r.boardKey,
-                      officialReply: r.officialReply,
-                      voteCount: state.voteCount,
-                      voted: state.voted,
-                      createdAt: r.createdAt,
-                      attachments: r.attachments,
-                    )
-                  : r,
-            )
-            .toList();
+        _voteOverlays[item.id] = state.voteCount;
+        if (state.voted) {
+          _votedIds.add(item.id);
+        } else {
+          _votedIds.remove(item.id);
+        }
+        _pendingVoteIds.remove(item.id);
       });
     } catch (_) {
       if (!mounted) return;
+      setState(() {
+        if (wasVoted) {
+          _votedIds.add(item.id);
+        } else {
+          _votedIds.remove(item.id);
+        }
+        _voteOverlays[item.id] = baseline;
+        _pendingVoteIds.remove(item.id);
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(t('detail.vote.failed'))),
       );
@@ -299,21 +318,225 @@ class _RequestListViewState extends State<RequestListView> {
             );
           }
           final item = _items[index];
-          return ListTile(
-            title: Text(item.title),
-            subtitle: Text(_boardLabel(item.boardKey)),
-            trailing: TextButton.icon(
-              onPressed: () => _handleVote(item),
-              icon: Icon(
-                item.voted ? Icons.thumb_up : Icons.thumb_up_outlined,
-                size: 16,
-              ),
-              label: Text('${item.voteCount}'),
-            ),
+          final overlay = _voteOverlays[item.id];
+          final voted = _votedIds.contains(item.id);
+          final pending = _pendingVoteIds.contains(item.id);
+          return InkWell(
             onTap: () => _openDetail(item.id),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 10,
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  _UpvotePill(
+                    count: overlay ?? item.voteCount,
+                    voted: voted,
+                    pending: pending,
+                    onTap: () => _handleVote(item),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.title,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (item.description.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            item.description,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey.shade700,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                        const SizedBox(height: 6),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            _MiniChip(
+                              label: _boardLabel(item.boardKey),
+                              color: Colors.grey.shade600,
+                              fillAlpha: 0.12,
+                            ),
+                            _StatusChip(status: item.status),
+                            if (item.attachments.isNotEmpty)
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.attach_file,
+                                    size: 11,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                  const SizedBox(width: 2),
+                                  Text(
+                                    '${item.attachments.length}',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
           );
         },
       ),
     );
+  }
+}
+
+class _UpvotePill extends StatelessWidget {
+  final int count;
+  final bool voted;
+  final bool pending;
+  final VoidCallback onTap;
+
+  const _UpvotePill({
+    required this.count,
+    required this.voted,
+    required this.pending,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final fill = voted ? Colors.orange : Colors.grey.shade100;
+    final fg = voted ? Colors.white : Colors.grey.shade800;
+    return Semantics(
+      button: true,
+      label: voted ? t('action.upvoted') : t('action.upvote'),
+      child: InkWell(
+        onTap: pending ? null : onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          width: 46,
+          height: 50,
+          decoration: BoxDecoration(
+            color: fill,
+            borderRadius: BorderRadius.circular(10),
+            border: voted
+                ? null
+                : Border.all(color: Colors.grey.shade300, width: 1),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.keyboard_arrow_up, size: 16, color: fg),
+              Text(
+                '$count',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: fg,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MiniChip extends StatelessWidget {
+  final String label;
+  final Color color;
+  final double fillAlpha;
+
+  const _MiniChip({
+    required this.label,
+    required this.color,
+    required this.fillAlpha,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: fillAlpha),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+          color: color,
+        ),
+      ),
+    );
+  }
+}
+
+class _StatusChip extends StatelessWidget {
+  final String status;
+
+  const _StatusChip({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _statusColor(status);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        _statusLabel(status),
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+          color: color,
+        ),
+      ),
+    );
+  }
+
+  static Color _statusColor(String status) {
+    switch (status) {
+      case 'completed':
+        return Colors.green;
+      case 'in_progress':
+        return Colors.blue;
+      case 'planned':
+        return Colors.orange;
+      case 'rejected':
+      case 'duplicate':
+        return Colors.grey;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  static String _statusLabel(String status) {
+    final key = 'status.$status';
+    final value = t(key);
+    return value == key ? status : value;
   }
 }

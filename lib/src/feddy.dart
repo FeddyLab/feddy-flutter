@@ -1,6 +1,7 @@
 import 'dart:io' show Platform;
 
 import 'api/boards.dart' as boards_api;
+import 'api/read.dart' as read_api;
 import 'client.dart';
 import 'feddy_error.dart';
 import 'iap_detector.dart' as iap_detector;
@@ -284,6 +285,85 @@ abstract final class Feddy {
       return systemDefaultBoards();
     }
     return boards_api.fetchBoards(client);
+  }
+
+  /// Fetch a paginated list of public-roadmap requests for the
+  /// configured workspace. Pair with [fetchRequest] / [upvote] /
+  /// [fetchComments] / [addComment] to build a custom roadmap UI; or
+  /// drop in `RequestListView` / `RoadmapView` for the bundled
+  /// experience.
+  ///
+  /// - [boardKey]: filter to a single board (e.g. `'features'`).
+  ///   Omit to list every public-roadmap request across boards.
+  /// - [status]: filter to one of the public statuses
+  ///   (`planned` / `inProgress` / `completed`). Server rejects any
+  ///   non-public value as `invalid_query`.
+  /// - [limit]: 1..100, default 20.
+  /// - [cursor]: pass back [RequestList.nextCursor] from the previous
+  ///   page; `null` starts from the top.
+  ///
+  /// Throws [FeddyError] on network / decoding failures and
+  /// [FeddyErrorCode.notConfigured] when called before
+  /// [Feddy.configure].
+  static Future<RequestList> fetchRequests({
+    String? boardKey,
+    RoadmapStatus? status,
+    int limit = 20,
+    String? cursor,
+  }) {
+    final client = requireClientForInternal('fetchRequests');
+    return read_api.fetchRequests(
+      client,
+      boardKey: boardKey,
+      status: status,
+      limit: limit,
+      cursor: cursor,
+    );
+  }
+
+  /// Fetch a single request by id. Returns 404 for non-public
+  /// statuses (`pending` / `reviewed` / `rejected` / `duplicate`)
+  /// so internal triage state never leaks to end users.
+  static Future<FeedbackRequest> fetchRequest({required String id}) {
+    final client = requireClientForInternal('fetchRequest');
+    return read_api.fetchRequest(client, id);
+  }
+
+  /// Toggle the current end user's vote on [requestId]. The returned
+  /// [VoteState] reflects the new server-side state — the SDK does
+  /// not cache vote state across sessions.
+  ///
+  /// Identity falls back to the per-install anonymous token when
+  /// [Feddy.identify] has not been called.
+  static Future<VoteState> upvote({required String requestId}) {
+    final client = requireClientForInternal('upvote');
+    return read_api.upvote(client, requestId: requestId);
+  }
+
+  /// Fetch a paginated list of comments on [requestId].
+  static Future<CommentList> fetchComments({
+    required String requestId,
+    int limit = 20,
+    String? cursor,
+  }) {
+    final client = requireClientForInternal('fetchComments');
+    return read_api.fetchComments(
+      client,
+      requestId: requestId,
+      limit: limit,
+      cursor: cursor,
+    );
+  }
+
+  /// Post a comment on [requestId]. [body] is trimmed; throws
+  /// [FeddyErrorCode.invalidPayload] before any network call when
+  /// the trimmed body is empty.
+  static Future<FeedbackComment> addComment({
+    required String requestId,
+    required String body,
+  }) {
+    final client = requireClientForInternal('addComment');
+    return read_api.addComment(client, requestId: requestId, body: body);
   }
 
   /// Present the built-in feedback compose modal. Requires

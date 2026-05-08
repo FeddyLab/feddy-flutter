@@ -1,6 +1,6 @@
 # Feddy SDK for Flutter
 
-> **Beta Notice**: This SDK is currently in beta (v0.2.0). The API may change before the 1.0 release.
+> **Beta Notice**: This SDK is currently in beta (v0.3.0). The API may change before the 1.0 release.
 
 Feddy gives Flutter apps a feedback loop that doesn't get in the way: a smart-review prompt that captures low ratings privately while routing 4-5 star moments to the App Store / Play Store, paid-user signals you push from your subscription source-of-truth, and drop-in Material widgets for the public roadmap.
 
