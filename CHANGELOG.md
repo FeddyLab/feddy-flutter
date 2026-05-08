@@ -10,6 +10,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `RequestDetailView` now renders attached images in a tap-to-zoom grid
 - Optimistic upvote with automatic rollback on failure across `RequestListView`, `RoadmapView`, and `RequestDetailView`
 - `RoadmapView` rows now match `RequestListView` layout (board chip, attachment count, upvote pill) and accept votes inline
+- `FeedbackComment.authorKind` / `authorDisplayName` / `isSelf` fields with kind-specific bubble styling — own comments right-align with orange tint, admin replies left-align with a shield icon, other end users show their display name
 
 ### Fixed
 - Upvote endpoint corrected from `/votes` to `/vote`; previously every upvote attempt 404'd silently
