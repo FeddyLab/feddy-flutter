@@ -6,13 +6,17 @@ const String _kApiKey = String.fromEnvironment('FEDDY_API_KEY');
 /// Stand-in for the user record the host app already has after its
 /// own authentication flow. Feddy never authenticates end users — the
 /// host app passes whatever identifier and traits it already knows.
-/// Mirrors `feddy-ios/Examples/.../DemoUser.swift` so a single user
-/// appears on both demos and cross-platform comments link to the
-/// same row in `workspace_end_user`.
+///
+/// Each platform demo uses a **distinct** user identity so a tester
+/// running both apps side-by-side can see the comment-bubble visual
+/// distinction in action: every comment shows up as `is_self=true` on
+/// the platform that posted it (orange right-aligned "You"), and as
+/// the other platform's display name on the other one (neutral
+/// left-aligned). iOS uses Alice Chen, RN uses Charlie Tan.
 class _DemoUser {
-  static const String id = 'demo_user_alice';
-  static const String email = 'alice@example.com';
-  static const String displayName = 'Alice Chen';
+  static const String id = 'demo_user_bob';
+  static const String email = 'bob@example.com';
+  static const String displayName = 'Bob Park';
 }
 
 void main() {
