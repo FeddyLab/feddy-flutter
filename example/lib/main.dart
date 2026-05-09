@@ -3,9 +3,30 @@ import 'package:flutter/material.dart';
 
 const String _kApiKey = String.fromEnvironment('FEDDY_API_KEY');
 
+/// Stand-in for the user record the host app already has after its
+/// own authentication flow. Feddy never authenticates end users — the
+/// host app passes whatever identifier and traits it already knows.
+/// Mirrors `feddy-ios/Examples/.../DemoUser.swift` so a single user
+/// appears on both demos and cross-platform comments link to the
+/// same row in `workspace_end_user`.
+class _DemoUser {
+  static const String id = 'demo_user_alice';
+  static const String email = 'alice@example.com';
+  static const String displayName = 'Alice Chen';
+}
+
 void main() {
   if (_kApiKey.isNotEmpty) {
+    // Canonical: configure once at launch, before any view runs.
     Feddy.configure(apiKey: _kApiKey);
+    // In your real app, call this from your auth handler with the
+    // user record you already have. The demo simulates with
+    // hardcoded values matching the iOS sample app.
+    Feddy.identify(
+      userId: _DemoUser.id,
+      email: _DemoUser.email,
+      displayName: _DemoUser.displayName,
+    );
   }
   runApp(const _DemoApp());
 }
@@ -57,13 +78,17 @@ class _DemoHome extends StatelessWidget {
             children: [
               ListTile(
                 leading: const Icon(Icons.login),
-                title: const Text('Identify demo user'),
-                subtitle: const Text('user_42 — demo@example.com'),
+                title: const Text('Re-identify demo user'),
+                subtitle: const Text(
+                  '${_DemoUser.id} — ${_DemoUser.email}\n'
+                  '(auto-fires once at launch; tap to refresh profile)',
+                ),
+                isThreeLine: true,
                 onTap: () {
                   Feddy.identify(
-                    userId: 'user_42',
-                    email: 'demo@example.com',
-                    displayName: 'Demo User',
+                    userId: _DemoUser.id,
+                    email: _DemoUser.email,
+                    displayName: _DemoUser.displayName,
                   );
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('identify dispatched')),
