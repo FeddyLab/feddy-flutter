@@ -3,6 +3,12 @@
 All notable changes to this package will be documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.1] - 2026-05-11
+
+### Changed
+- Smart Review prompt is now a two-step like / dislike confirmation.
+- Smart Review event telemetry now requires v0.3.1+; older clients will silently stop reporting funnel events.
+
 ## [0.3.0] - 2026-05-08
 
 ### Added
