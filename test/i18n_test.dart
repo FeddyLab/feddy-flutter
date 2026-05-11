@@ -35,7 +35,7 @@ void main() {
       expect(t('time.minutesAgo', {'n': 5}), '5m ago');
     });
 
-    test('all 5 locales return non-empty for board.features', () {
+    test('all 7 locales return non-empty for board.features', () {
       for (final locale in FeddyLocale.values) {
         setLocale(locale);
         expect(t('board.features').isNotEmpty, isTrue);

@@ -167,7 +167,7 @@ Both manual and auto values persist across launches via `shared_preferences`; th
 
 ### Custom Boards & i18n
 
-The two SDK-shipped system boards (`features` / `bugs`) come pre-translated in 5 locales (en / es / ja / de / fr) and are picked automatically based on the device locale. The bundled views fetch the workspace's full board set from `GET /v1/boards` (1 h cached) so any custom board you create in the dashboard appears without redeploying the app:
+The two SDK-shipped system boards (`features` / `bugs`) come pre-translated in 7 locales (en / zh-Hans / zh-Hant / es / ja / de / fr) and are picked automatically based on the device locale. The bundled views fetch the workspace's full board set from `GET /v1/boards` (1 h cached) so any custom board you create in the dashboard appears without redeploying the app:
 
 ```dart
 const RequestListView();    // boards fetched in the background
@@ -226,7 +226,7 @@ final boards = await Feddy.fetchBoards();    // for fully custom UIs (coming wit
 - **Image Attachments** — up to 3 photos per request, auto-compressed and uploaded directly to R2.
 - **Anonymous Fallback** — writes attribute correctly even before the host app calls `identify()`.
 - **Offline Queue** — submits made while offline are persisted and replayed on the next `configure()`.
-- **5 Locales** — en / es / ja / de / fr auto-detected from the device.
+- **7 Locales** — en / zh-Hans / zh-Hant / es / ja / de / fr auto-detected from the device.
 
 ## License
 

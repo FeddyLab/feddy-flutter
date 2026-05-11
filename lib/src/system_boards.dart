@@ -3,8 +3,10 @@ import 'types.dart';
 
 /// Display-name translations for **custom** board keys — anything
 /// beyond the two SDK-shipped system boards (`features` / `bugs`).
-/// Keyed by board key, then by 2-letter locale code (`en` / `es` /
-/// `ja` / `de` / `fr`).
+/// Keyed by board key, then by locale code (`en` / `zh-Hans` /
+/// `zh-Hant` / `es` / `ja` / `de` / `fr`). Chinese also accepts a
+/// plain `zh` key as a shared fallback when both variants share the
+/// same translation.
 typedef BoardTranslations = Map<String, Map<String, String>>;
 
 /// Board keys the SDK ships first-party translations for. Any board
@@ -31,10 +33,11 @@ BoardTranslations getBoardTranslations() => _hostBoardTranslations;
 String? hostBoardTranslation(String key) {
   final entry = _hostBoardTranslations[key];
   if (entry == null) return null;
-  final code = currentLocale().name;
-  final value = entry[code];
-  if (value == null || value.isEmpty) return null;
-  return value;
+  for (final code in currentLocaleCodes()) {
+    final value = entry[code];
+    if (value != null && value.isNotEmpty) return value;
+  }
+  return null;
 }
 
 /// Display-name resolution for a board key. Mirrors the React Native
