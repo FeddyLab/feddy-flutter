@@ -75,28 +75,45 @@ class _FeddyProviderState extends State<FeddyProvider> {
 
   Future<void> _presentSmartReview() async {
     final navigator = Navigator.of(context, rootNavigator: true);
+    var terminalFired = false;
+    var likedTransitioned = false;
     await showModalBottomSheet<void>(
       context: navigator.context,
       isScrollControlled: true,
       builder: (sheetContext) => SmartReviewSheet(
-        onRated: (stars) {
-          // Pop the sheet first so it's already gone by the time the
-          // system review prompt animates in (otherwise the bottom
-          // sheet sits behind the system overlay until this frame
-          // settles).
-          Navigator.of(sheetContext).pop();
-          smartReviewUiState.emitRated(stars);
+        onLiked: () {
+          // Non-terminal: sheet transitions internally to step 2.
+          // Do NOT pop; just notify the consumer.
+          likedTransitioned = true;
+          smartReviewUiState.emitLiked();
         },
-        onCancel: () {
+        onDisliked: () {
+          terminalFired = true;
           Navigator.of(sheetContext).pop();
-          smartReviewUiState.emitCancelled();
+          smartReviewUiState.emitDisliked();
+        },
+        onStoreConfirmed: () {
+          // Pop the sheet first so it's already gone by the time the
+          // system review prompt animates in.
+          terminalFired = true;
+          Navigator.of(sheetContext).pop();
+          smartReviewUiState.emitStoreConfirmed();
+        },
+        onStoreDismissed: () {
+          terminalFired = true;
+          Navigator.of(sheetContext).pop();
+          smartReviewUiState.emitStoreDismissed();
         },
       ),
     );
-    if (smartReviewUiState.visible) {
-      // Sheet dismissed via swipe / scrim tap rather than the
-      // "Not now" button — surface that as a cancel.
-      smartReviewUiState.emitCancelled();
+    if (!terminalFired && smartReviewUiState.visible) {
+      // Sheet dismissed via swipe / scrim tap rather than a button.
+      // Route based on whether the user already crossed into step 2.
+      if (likedTransitioned) {
+        smartReviewUiState.emitStoreDismissed();
+      } else {
+        smartReviewUiState.emitSheetDismissedBeforeChoice();
+      }
     }
   }
 

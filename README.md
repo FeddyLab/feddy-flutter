@@ -1,8 +1,8 @@
 # Feddy SDK for Flutter
 
-> **Beta Notice**: This SDK is currently in beta (v0.3.0). The API may change before the 1.0 release.
+> **Beta Notice**: This SDK is currently in beta (v0.3.1). The API may change before the 1.0 release.
 
-Feddy gives Flutter apps a feedback loop that doesn't get in the way: a smart-review prompt that captures low ratings privately while routing 4-5 star moments to the App Store / Play Store, paid-user signals you push from your subscription source-of-truth, and drop-in Material widgets for the public roadmap.
+Feddy gives Flutter apps a feedback loop that doesn't get in the way: a smart-review prompt that routes happy users to the App Store / Play Store and captures unhappy users as private feedback, paid-user signals you push from your subscription source-of-truth, and drop-in Material widgets for the public roadmap.
 
 ## Installation
 
@@ -80,7 +80,7 @@ Call this from any "user just had a good moment" hook — onboarding completed, 
 Feddy.requestReviewIfAppropriate(trigger: 'task_50_complete');
 ```
 
-The SDK's built-in gates decide whether to actually present the prompt (≥7 days install age, ≥5 sessions, ≥90d cooldown, ≤3 prompts per 365d window). 4-5 stars route to the system review prompt; 1-3 stars route to the built-in compose modal so the feedback is captured privately instead of as a public 1-3 star App Store review.
+The SDK's built-in gates decide whether to actually present the prompt (≥7 days install age, ≥5 sessions, ≥90d cooldown, ≤3 prompts per 365d window). A two-step sheet appears: step one asks whether the user is enjoying the app; step two confirms before invoking the system review prompt. A negative answer in step one routes straight to the built-in compose modal so the feedback is captured privately instead of as a public 1-star App Store review.
 
 ## Submit Feedback
 
@@ -222,7 +222,7 @@ final boards = await Feddy.fetchBoards();    // for fully custom UIs (coming wit
 
 ## Features
 
-- **Smart Review** — turn 4-5 star moments into App Store reviews and 1-3 star moments into private feedback.
+- **Smart Review** — route happy users to the App Store and unhappy users to a private feedback form.
 - **Image Attachments** — up to 3 photos per request, auto-compressed and uploaded directly to R2.
 - **Anonymous Fallback** — writes attribute correctly even before the host app calls `identify()`.
 - **Offline Queue** — submits made while offline are persisted and replayed on the next `configure()`.

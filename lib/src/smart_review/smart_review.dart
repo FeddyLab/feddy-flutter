@@ -27,9 +27,26 @@ String? _normalizeTrigger(String? raw) {
   return trimmed.length <= 100 ? trimmed : trimmed.substring(0, 100);
 }
 
+void _invokeInAppReview() {
+  Future<void>(() async {
+    try {
+      final reviewer = InAppReview.instance;
+      if (await reviewer.isAvailable()) {
+        await reviewer.requestReview();
+      } else {
+        // ignore: avoid_print
+        print('[Feddy] in_app_review not available on this device');
+      }
+    } catch (e) {
+      // ignore: avoid_print
+      print('[Feddy] in_app_review failed — $e');
+    }
+  });
+}
+
 /// Imperative entry point for `Feddy.requestReviewIfAppropriate(...)`.
-/// Mirrors RN's `requestReviewIfAppropriate` 1:1 — same gates, same
-/// telemetry stages, same rate-routing logic.
+/// Mirrors the iOS / RN SDKs 1:1 — same gates, same telemetry stages,
+/// same two-step like / dislike UI.
 Future<void> requestReviewIfAppropriate(RequestReviewOptions opts) async {
   final client = getCurrentClient();
   if (client == null) {
@@ -64,48 +81,52 @@ Future<void> requestReviewIfAppropriate(RequestReviewOptions opts) async {
   smartReviewUiState.open(
     trigger: trigger,
     boardKey: opts.boardKey,
-    onRated: (stars) {
+    onLiked: () {
+      // Non-terminal: sheet stays open and transitions to step 2.
+      logReviewEvent(
+        client,
+        stage: ReviewPromptStage.liked,
+        trigger: trigger,
+      );
+    },
+    onDisliked: () {
       smartReviewUiState.close();
       logReviewEvent(
         client,
-        stage: ReviewPromptStage.rated,
-        rating: stars,
+        stage: ReviewPromptStage.disliked,
         trigger: trigger,
       );
-      if (stars >= 4) {
-        logReviewEvent(
-          client,
-          stage: ReviewPromptStage.routedStore,
-          rating: stars,
-          trigger: trigger,
-        );
-        Future<void>(() async {
-          try {
-            final reviewer = InAppReview.instance;
-            if (await reviewer.isAvailable()) {
-              await reviewer.requestReview();
-            } else {
-              // ignore: avoid_print
-              print('[Feddy] in_app_review not available on this device');
-            }
-          } catch (e) {
-            // ignore: avoid_print
-            print('[Feddy] in_app_review failed — $e');
-          }
-        });
-      } else {
-        logReviewEvent(
-          client,
-          stage: ReviewPromptStage.routedFeedback,
-          rating: stars,
-          trigger: trigger,
-        );
-        composeUiState.open(boardKey: opts.boardKey);
-      }
+      logReviewEvent(
+        client,
+        stage: ReviewPromptStage.routedFeedback,
+        trigger: trigger,
+      );
+      composeUiState.open(boardKey: opts.boardKey);
     },
-    onCancel: () {
+    onStoreConfirmed: () {
       smartReviewUiState.close();
-      // No event logged — sheet was dismissed without a rating.
+      logReviewEvent(
+        client,
+        stage: ReviewPromptStage.routedStore,
+        trigger: trigger,
+      );
+      _invokeInAppReview();
+    },
+    onStoreDismissed: () {
+      smartReviewUiState.close();
+      logReviewEvent(
+        client,
+        stage: ReviewPromptStage.dismissedStoreConfirm,
+        trigger: trigger,
+      );
+    },
+    onSheetDismissedBeforeChoice: () {
+      smartReviewUiState.close();
+      logReviewEvent(
+        client,
+        stage: ReviewPromptStage.dismissed,
+        trigger: trigger,
+      );
     },
   );
 }

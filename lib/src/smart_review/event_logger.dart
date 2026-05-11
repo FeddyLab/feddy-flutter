@@ -1,19 +1,33 @@
 import '../client.dart';
 import '../identity.dart';
 
-enum ReviewPromptStage { shown, rated, routedStore, routedFeedback }
+enum ReviewPromptStage {
+  shown,
+  liked,
+  disliked,
+  routedStore,
+  routedFeedback,
+  dismissedStoreConfirm,
+  dismissed,
+}
 
 extension ReviewPromptStageWire on ReviewPromptStage {
   String get wireValue {
     switch (this) {
       case ReviewPromptStage.shown:
         return 'shown';
-      case ReviewPromptStage.rated:
-        return 'rated';
+      case ReviewPromptStage.liked:
+        return 'liked';
+      case ReviewPromptStage.disliked:
+        return 'disliked';
       case ReviewPromptStage.routedStore:
         return 'routed_store';
       case ReviewPromptStage.routedFeedback:
         return 'routed_feedback';
+      case ReviewPromptStage.dismissedStoreConfirm:
+        return 'dismissed_store_confirm';
+      case ReviewPromptStage.dismissed:
+        return 'dismissed';
     }
   }
 }
@@ -24,19 +38,18 @@ extension ReviewPromptStageWire on ReviewPromptStage {
 void logReviewEvent(
   FeddyClient client, {
   required ReviewPromptStage stage,
-  int? rating,
   String? trigger,
 }) {
   Future<void>(() async {
     try {
       final externalUserId = await getLastExternalUserId();
-      final anonymousToken =
-          externalUserId == null ? await getAnonymousToken() : null;
+      final anonymousToken = externalUserId == null
+          ? await getAnonymousToken()
+          : null;
       await client.post('/v1/review-prompt-events', {
         if (externalUserId != null) 'external_user_id': externalUserId,
         if (anonymousToken != null) 'anonymous_token': anonymousToken,
         'stage': stage.wireValue,
-        if (rating != null) 'rating': rating,
         if (trigger != null) 'trigger': trigger,
       });
     } catch (e) {
