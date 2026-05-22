@@ -10,6 +10,7 @@ import 'identity.dart';
 import 'runtime.dart';
 import 'smart_review/smart_review.dart' as smart_review;
 import 'smart_review/store.dart' as smart_review_store;
+import 'smart_review/system_direct.dart' as smart_review_system_direct;
 import 'submit_queue.dart';
 import 'subscription_store.dart';
 import 'system_boards.dart';
@@ -402,6 +403,33 @@ abstract final class Feddy {
         );
       } catch (err) {
         _logError('requestReviewIfAppropriate', err);
+      }
+    });
+  }
+
+  /// Bypass the Smart Review shield and invoke
+  /// `in_app_review.requestReview()` immediately. Use only for
+  /// moments where the host has already established positive
+  /// sentiment (e.g. immediately after a paywall purchase succeeds).
+  ///
+  /// No SDK gates (Apple / Google opaque per-app yearly caps still
+  /// apply). No private feedback fallback. Reports
+  /// `stage = "system_direct"` to the dashboard funnel with the
+  /// supplied trigger so the host can compare conversion against
+  /// shield-flow triggers.
+  ///
+  /// Fire-and-forget: returns immediately. No-op if `configure` has
+  /// not yet been called.
+  static void requestSystemReviewDirect({String? trigger}) {
+    Future<void>(() async {
+      try {
+        await smart_review_system_direct.requestSystemReviewDirect(
+          smart_review_system_direct.RequestSystemReviewDirectOptions(
+            trigger: trigger,
+          ),
+        );
+      } catch (err) {
+        _logError('requestSystemReviewDirect', err);
       }
     });
   }

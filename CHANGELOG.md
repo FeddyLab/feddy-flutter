@@ -3,6 +3,12 @@
 All notable changes to this package will be documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.2] - 2026-05-22
+
+### Added
+- `Feddy.requestSystemReviewDirect(trigger:)` — invokes `in_app_review` directly, skipping the Smart Review like / dislike pre-prompt. Use for moments where the host has already established positive sentiment (e.g. immediately after a paywall purchase succeeds). Reports `stage = "system_direct"` to the dashboard funnel.
+- README "Review Prompts" section documents both `requestReviewIfAppropriate` (shield flow) and `requestSystemReviewDirect` (bypass).
+
 ## [0.3.1] - 2026-05-11
 
 ### Changed

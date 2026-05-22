@@ -9,6 +9,7 @@ enum ReviewPromptStage {
   routedFeedback,
   dismissedStoreConfirm,
   dismissed,
+  systemDirect,
 }
 
 extension ReviewPromptStageWire on ReviewPromptStage {
@@ -28,6 +29,8 @@ extension ReviewPromptStageWire on ReviewPromptStage {
         return 'dismissed_store_confirm';
       case ReviewPromptStage.dismissed:
         return 'dismissed';
+      case ReviewPromptStage.systemDirect:
+        return 'system_direct';
     }
   }
 }

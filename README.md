@@ -1,6 +1,6 @@
 # Feddy SDK for Flutter
 
-> **Beta Notice**: This SDK is currently in beta (v0.3.1). The API may change before the 1.0 release.
+> **Beta Notice**: This SDK is currently in beta (0.3.2). The API may change before the 1.0 release.
 
 Feddy gives Flutter apps a feedback loop that doesn't get in the way: a smart-review prompt that routes happy users to the App Store / Play Store and captures unhappy users as private feedback, paid-user signals you push from your subscription source-of-truth, and drop-in Material widgets for the public roadmap.
 
@@ -81,6 +81,14 @@ Feddy.requestReviewIfAppropriate(trigger: 'task_50_complete');
 ```
 
 The SDK's built-in gates decide whether to actually present the prompt (≥7 days install age, ≥5 sessions, ≥90d cooldown, ≤3 prompts per 365d window). A two-step sheet appears: step one asks whether the user is enjoying the app; step two confirms before invoking the system review prompt. A negative answer in step one routes straight to the built-in compose modal so the feedback is captured privately instead of as a public 1-star App Store review.
+
+For moments where you've **already decided** the user is happy — typically the instant a paywall purchase completes — bypass the shield and invoke the native review prompt immediately:
+
+```dart
+Feddy.requestSystemReviewDirect(trigger: 'paywall_purchase_success');
+```
+
+No SDK gates (Apple / Google opaque per-app yearly caps still apply). No private feedback fallback. Reports `stage = "system_direct"` to the dashboard funnel so you can compare conversion against shield-flow triggers.
 
 ## Submit Feedback
 
